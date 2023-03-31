@@ -1,0 +1,154 @@
+<head>
+    <script src="https://cdn.mainnet.cash/mainnet-1.0.18.js"
+        integrity="sha384-ycTMixHX9F/H/CjvM6jph6wPiwyY19jn4zXCQA+C3uAM0gUqvNyg1ZC72OZYU/kn"
+        crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@bitjson/qr-code@1.0.2/dist/qr-code.js"></script>
+</head>
+
+<body>
+    <qr-code id="qr1" contents="https://bitjson.com" module-color="#1c7d43" position-ring-color="#13532d"
+        position-center-color="#70c559" mask-x-to-y-ratio="1.0" style="
+          width: 500px;
+          height: 500px;
+          margin: 2em auto;
+          background-color: #fff;
+        ">
+        <img src="assets/bch.svg" slot="icon" />
+    </qr-code>
+    <App>
+        <div>
+            <bch-address></bch-address>
+            <bch-balance></bch-balance>
+        </div>
+        <div>
+            <button id="mint-new-token-btn">Mint New Token</button>
+        </div>
+        <div>
+            <button id="add-metadata-registry-btn">Add Metadata Registry</button>
+        </div>
+    </App>
+    <script>
+        document.addEventListener("DOMContentLoaded", async (event) => {
+            globalThis.exports = globalThis.exports || {};
+            Object.assign(globalThis, await __mainnetPromise);
+
+            DefaultProvider.servers.testnet = ["wss://chipnet.imaginary.cash:50004"]
+            const wallet = await TestNetWallet.named("user:chipnet:renegade");
+
+            // Load and display address
+            const address = wallet.address;
+            let app = document.getElementsByTagName("App")[0];
+            document.getElementById('qr1').setAttribute('contents', address);
+            document.getElementsByTagName("bch-address")[0].innerHTML = address;
+
+
+            // Fetch and display balance
+            const balance = await wallet.getBalance('sat')
+            document.getElementsByTagName("bch-balance")[0].innerHTML = balance + " satoshis";
+
+            // Add a watch for the balance
+            const cancelBalanceWatch = wallet.watchBalance(balance => {
+                console.log("balance updated", balance);
+                document.getElementsByTagName("bch-balance")[0].innerHTML = balance.sat + " satoshis";
+            });
+
+            // Watch for new transactions
+            wallet.watchAddress((txHash) => {
+                console.log("New Transaction Watched", txHash);
+            });
+
+            document.getElementById('mint-new-token-btn').addEventListener('click', async () => {
+                const genesisResponse = await wallet.tokenGenesis({
+                    amount: 5,                      // fungible token amount
+                    commitment: "abcd",             // NFT Commitment message
+                    capability: NFTCapability.none, // NFT capability
+                    value: 1000,                    // Satoshi value
+                });
+                const tokenId = genesisResponse.tokenIds[0];
+                console.log("TokenId", tokenId)
+            })
+
+            document.getElementById('add-metadata-registry').addEventListener('click', async () => {
+                let registry = {
+                    version: {
+                        major: 0,
+                        minor: 1,
+                        patch: 0,
+                    },
+                    latestRevision: "2023-01-26T18:51:35.115Z",
+                    registryIdentity: {
+                        name: "example bcmr",
+                        description: "example bcmr for tokens on chipnet",
+                        time: {
+                            begin: "2023-01-26T18:51:35.115Z",
+                        },
+                    },
+                    identities: {
+                        "0000000000000000000000000000000000000000000000000000000000000000": [
+                            {
+                                name: "test tokens",
+                                description: "The metaverse is here. Where is it all being stored?",
+                                time: {
+                                    begin: "2023-01-26T18:51:35.115Z",
+                                },
+                                token: {
+                                    category:
+                                        "0000000000000000000000000000000000000000000000000000000000000000",
+                                    symbol: "TOK",
+                                    decimals: 8,
+                                    nfts: {
+                                        description: "The metaverse is here. Where is it all being stored?",
+                                        fields: {
+                                            name: {
+                                                name: "Name",
+                                                description: "The name of the NFT",
+                                                encoding: "string",
+                                            },
+                                            description: {
+                                                type: "string",
+                                                description: "The description of the NFT",
+                                            },
+                                            image: {
+                                                type: "string",
+                                                description: "The image of the NFT",
+                                            },
+                                            properties: {
+                                                type: "object",
+                                                description: "The properties of the NFT",
+                                            },
+                                        },
+                                    }
+                                },
+                            },
+                        ],
+                    },
+                };
+
+                let metadata = {
+                    "name": "Storing the World's Most Valuable Virtual Assets with NFT.Storage",
+                    "description": "The metaverse is here. Where is it all being stored?",
+                    "image": null,
+                    "properties": {
+                        "type": "blog-post",
+                        "origins": {
+                            "http": "https://blog.nft.storage/posts/2021-11-30-hello-world-nft-storage/",
+                            "ipfs": "ipfs://bafybeieh4gpvatp32iqaacs6xqxqitla4drrkyyzq6dshqqsilkk3fqmti/blog/post/2021-11-30-hello-world-nft-storage/"
+                        },
+                        "authors": [
+                            {
+                                "name": "David Choi"
+                            }
+                        ],
+                        "content": {
+                            "text/markdown": "The last year has witnessed the explosion of NFTs onto the world’s mainstage. From fine art to collectibles to music and media, NFTs are quickly demonstrating just how quickly grassroots Web3 communities can grow, and perhaps how much closer we are to mass adoption than we may have previously thought. <... remaining content omitted ...>"
+                        }
+                    }
+                }
+            })
+            debugger;
+        });
+        document.getElementById('qr1').addEventListener('codeRendered', () => {
+            document.getElementById('qr1').animateQRCode('MaterializeIn');
+        });
+    </script>
+</body>
